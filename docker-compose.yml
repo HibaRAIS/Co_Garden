@@ -1,0 +1,155 @@
+services:
+  # Database PostgreSQL unique avec schémas séparés
+  postgres:
+    image: postgres:16-alpine
+    container_name: cogarden-postgres
+    environment:
+      POSTGRES_DB: cogarden
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./01-init-schemas.sql:/docker-entrypoint-initdb.d/01-init-schemas.sql
+      - ./02-seed-data.sql:/docker-entrypoint-initdb.d/02-seed-data.sql
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 40s
+    networks:
+      - cogarden-network
+
+  # Service Catalogue
+  catalogue-service:
+    build:
+      context: ./services/catalogue
+      dockerfile: Dockerfile
+    container_name: cogarden-catalogue-service
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/cogarden?schema=catalogue
+    ports:
+      - "3000:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./services/catalogue:/app
+      - /app/node_modules
+    networks:
+      - cogarden-network
+    command: sh -c "npx prisma db push && npm start"
+
+  # Service Membres
+  membres-service:
+    build:
+      context: ./services/membres
+      dockerfile: Dockerfile
+    container_name: cogarden-membres-service
+    environment:
+      NODE_ENV: production
+      PORT: 3001
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: cogarden
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      DB_SCHEMA: membres
+      JWT_SECRET: your-secret-key-change-in-production
+    ports:
+      - "3001:3001"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./services/membres:/app
+      - /app/node_modules
+    networks:
+      - cogarden-network
+
+  # Service Parcelles
+  parcelles-service:
+    build:
+      context: ./services/parcelles
+      dockerfile: Dockerfile
+    container_name: cogarden-parcelles-service
+    environment:
+      NODE_ENV: production
+      PORT: 3002
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_DATABASE: cogarden
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      DB_SCHEMA: parcelles
+      JWT_SECRET: your-secret-key-change-in-production
+      MEMBERS_API_URL: http://membres-service:3001/api/members
+      MEMBERS_AUTH_URL: http://membres-service:3001/api/auth
+      PLANTS_API_URL: http://catalogue-service:3000/api/plants
+    ports:
+      - "3002:3002"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      membres-service:
+        condition: service_started
+    volumes:
+      - ./services/parcelles:/app
+      - /app/node_modules
+      - parcelles-uploads:/app/uploads
+    networks:
+      - cogarden-network
+
+  # Service Tâches
+  taches-service:
+    build:
+      context: ./services/taches
+      dockerfile: Dockerfile
+    container_name: cogarden-taches-service
+    environment:
+      NODE_ENV: production
+      PORT: 3003
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/cogarden?schema=taches
+      MEMBERS_API_URL: http://membres-service:3001/api/members
+      MEMBERS_AUTH_URL: http://membres-service:3001/api/auth
+    ports:
+      - "3003:3003"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      membres-service:
+        condition: service_started
+    volumes:
+      - ./services/taches:/app
+      - /app/node_modules
+    networks:
+      - cogarden-network
+    command: sh -c "npx prisma db push && npm start"
+
+  # Frontend
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: cogarden-frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - catalogue-service
+      - membres-service
+      - parcelles-service
+      - taches-service
+    networks:
+      - cogarden-network
+
+networks:
+  cogarden-network:
+    driver: bridge
+
+volumes:
+  postgres-data:
+  parcelles-uploads:
