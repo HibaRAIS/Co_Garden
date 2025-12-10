@@ -1,0 +1,8 @@
+{
+  "extension": [".js", ".ts"],
+  "all": true,
+  "include": ["src/**/*.js", "src/**/*.ts"],
+  "exclude": ["**/generated/**", "**/prisma/**", "dist/**", "node_modules/**"],
+  "reporter": ["text", "lcov"],
+  "cache": true
+}

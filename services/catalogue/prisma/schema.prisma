@@ -1,0 +1,53 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  schemas  = ["catalogue"]
+}
+
+// ==========================================
+// MODÈLE PLANT (PLANTE)
+// ==========================================
+model Plant {
+  id                Int       @id @default(autoincrement())
+  name              String    @db.VarChar(200)
+  scientific_name   String?   @db.VarChar(300)
+  type              String?   @db.VarChar(100)
+  description       String?   @db.Text
+  care_instructions String?   @db.Text
+  image_url         String?   @db.VarChar(500)
+  created_at        DateTime  @default(now()) @db.Timestamp()
+  
+  // Relation: Une plante peut avoir plusieurs commentaires
+  comments          Comment[]
+  
+  @@map("plants")
+  @@schema("catalogue")
+}
+
+// ==========================================
+// MODÈLE COMMENT (COMMENTAIRE)
+// NOTE: Nous conservons user_id car le commentaire nécessite
+// de savoir quel utilisateur (ID externe) l'a posté,
+// mais SANS la relation Prisma vers le modèle Member.
+// ==========================================
+model Comment {
+  id         Int      @id @default(autoincrement())
+  plant_id   Int
+  user_id    String?  @db.VarChar(100)  // ID de l'utilisateur depuis le service utilisateurs
+  author     String   @db.VarChar(200)
+  content    String   @db.Text
+  created_at DateTime @default(now()) @db.Timestamp()
+  
+  // Relation: Un commentaire appartient à une plante
+  plant      Plant    @relation(fields: [plant_id], references: [id], onDelete: Cascade)
+  
+  @@map("comments")
+  @@schema("catalogue")
+}
