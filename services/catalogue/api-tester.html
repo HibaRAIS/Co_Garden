@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Co-Garden API Tester</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+        
+        header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+        
+        .subtitle {
+            opacity: 0.9;
+            font-size: 1.1rem;
+        }
+        
+        .content {
+            padding: 30px;
+        }
+        
+        .test-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            border-left: 4px solid #667eea;
+        }
+        
+        .test-section h2 {
+            color: #667eea;
+            margin-bottom: 15px;
+            font-size: 1.5rem;
+        }
+        
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: bold;
+            transition: transform 0.2s, box-shadow 0.2s;
+            margin: 5px;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        }
+        
+        button:active {
+            transform: translateY(0);
+        }
+        
+        .result {
+            margin-top: 15px;
+            padding: 15px;
+            background: white;
+            border-radius: 8px;
+            border: 1px solid #dee2e6;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        pre {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            color: #2d3748;
+        }
+        
+        .success {
+            color: #28a745;
+            font-weight: bold;
+        }
+        
+        .error {
+            color: #dc3545;
+            font-weight: bold;
+        }
+        
+        .info {
+            background: #d1ecf1;
+            border-left: 4px solid #0c5460;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 5px;
+        }
+        
+        .badge {
+            display: inline-block;
+            padding: 5px 12px;
+            border-radius: 12px;
+            font-size: 0.85rem;
+            font-weight: bold;
+            margin-right: 10px;
+        }
+        
+        .badge-get { background: #28a745; color: white; }
+        .badge-post { background: #007bff; color: white; }
+        .badge-put { background: #ffc107; color: #000; }
+        .badge-delete { background: #dc3545; color: white; }
+        
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 1s ease-in-out infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🌱 Co-Garden API Tester</h1>
+            <p class="subtitle">Test de l'API du Catalogue de Plantes</p>
+        </header>
+        
+        <div class="content">
+            <div class="info">
+                <strong>📍 Base URL:</strong> http://127.0.0.1:8002<br>
+                <strong>📚 Documentation complète:</strong> Voir API_DOCUMENTATION.md
+            </div>
+            
+            <!-- Health Check -->
+            <div class="test-section">
+                <h2>🏥 Health Check</h2>
+                <span class="badge badge-get">GET</span>
+                <button onclick="testHealth()">Test Health Endpoint</button>
+                <div id="health-result" class="result" style="display:none;"></div>
+            </div>
+            
+            <!-- Get All Plants -->
+            <div class="test-section">
+                <h2>🌿 Récupérer Toutes les Plantes</h2>
+                <span class="badge badge-get">GET</span>
+                <button onclick="testGetPlants()">Get All Plants</button>
+                <div id="plants-result" class="result" style="display:none;"></div>
+            </div>
+            
+            <!-- Search Plants -->
+            <div class="test-section">
+                <h2>🔍 Rechercher des Plantes</h2>
+                <span class="badge badge-get">GET</span>
+                <input type="text" id="search-query" placeholder="Ex: tomato" style="padding: 10px; border-radius: 5px; border: 1px solid #ddd; margin-right: 10px;">
+                <button onclick="testSearchPlants()">Search Plants</button>
+                <div id="search-result" class="result" style="display:none;"></div>
+            </div>
+            
+            <!-- Get Single Plant -->
+            <div class="test-section">
+                <h2>📋 Détails d'une Plante</h2>
+                <span class="badge badge-get">GET</span>
+                <input type="number" id="plant-id" placeholder="Plant ID" value="1" style="padding: 10px; border-radius: 5px; border: 1px solid #ddd; margin-right: 10px; width: 100px;">
+                <button onclick="testGetPlant()">Get Plant Details</button>
+                <div id="plant-result" class="result" style="display:none;"></div>
+            </div>
+            
+            <!-- Register Admin -->
+            <div class="test-section">
+                <h2>🔐 Créer un Administrateur</h2>
+                <span class="badge badge-post">POST</span>
+                <button onclick="testRegisterAdmin()">Register Admin</button>
+                <div id="register-result" class="result" style="display:none;"></div>
+            </div>
+            
+            <!-- Login Admin -->
+            <div class="test-section">
+                <h2>🔑 Connexion Admin</h2>
+                <span class="badge badge-post">POST</span>
+                <button onclick="testLoginAdmin()">Login Admin</button>
+                <div id="login-result" class="result" style="display:none;"></div>
+            </div>
+            
+            <!-- Stats -->
+            <div class="test-section">
+                <h2>📊 Statistiques</h2>
+                <div id="stats" style="font-size: 1.1rem; color: #495057;">
+                    Cliquez sur "Get All Plants" pour voir les statistiques
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://127.0.0.1:8002';
+        let authToken = null;
+
+        async function testHealth() {
+            const resultDiv = document.getElementById('health-result');
+            resultDiv.style.display = 'block';
+            resultDiv.innerHTML = '<div class="loading"></div> Chargement...';
+            
+            try {
+                const response = await fetch(`${API_BASE}/health`);
+                const data = await response.json();
+                resultDiv.innerHTML = `<span class="success">✅ SUCCESS</span><pre>${JSON.stringify(data, null, 2)}</pre>`;
+            } catch (error) {
+                resultDiv.innerHTML = `<span class="error">❌ ERROR</span><pre>${error.message}</pre>`;
+            }
+        }
+
+        async function testGetPlants() {
+            const resultDiv = document.getElementById('plants-result');
+            resultDiv.style.display = 'block';
+            resultDiv.innerHTML = '<div class="loading"></div> Chargement...';
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/plants`);
+                const data = await response.json();
+                resultDiv.innerHTML = `<span class="success">✅ SUCCESS</span><pre>${JSON.stringify(data, null, 2)}</pre>`;
+                
+                // Update stats
+                const statsDiv = document.getElementById('stats');
+                statsDiv.innerHTML = `
+                    <strong>Total Plantes:</strong> ${data.pagination.total}<br>
+                    <strong>Affichées:</strong> ${data.data.length}<br>
+                    <strong>Skip:</strong> ${data.pagination.skip}<br>
+                    <strong>Limit:</strong> ${data.pagination.limit}
+                `;
+            } catch (error) {
+                resultDiv.innerHTML = `<span class="error">❌ ERROR</span><pre>${error.message}</pre>`;
+            }
+        }
+
+        async function testSearchPlants() {
+            const query = document.getElementById('search-query').value;
+            if (!query) {
+                alert('Entrez un terme de recherche');
+                return;
+            }
+            
+            const resultDiv = document.getElementById('search-result');
+            resultDiv.style.display = 'block';
+            resultDiv.innerHTML = '<div class="loading"></div> Recherche...';
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/plants/search?q=${encodeURIComponent(query)}`);
+                const data = await response.json();
+                resultDiv.innerHTML = `<span class="success">✅ SUCCESS</span><pre>${JSON.stringify(data, null, 2)}</pre>`;
+            } catch (error) {
+                resultDiv.innerHTML = `<span class="error">❌ ERROR</span><pre>${error.message}</pre>`;
+            }
+        }
+
+        async function testGetPlant() {
+            const id = document.getElementById('plant-id').value;
+            const resultDiv = document.getElementById('plant-result');
+            resultDiv.style.display = 'block';
+            resultDiv.innerHTML = '<div class="loading"></div> Chargement...';
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/plants/${id}`);
+                const data = await response.json();
+                resultDiv.innerHTML = `<span class="success">✅ SUCCESS</span><pre>${JSON.stringify(data, null, 2)}</pre>`;
+            } catch (error) {
+                resultDiv.innerHTML = `<span class="error">❌ ERROR</span><pre>${error.message}</pre>`;
+            }
+        }
+
+        async function testRegisterAdmin() {
+            const resultDiv = document.getElementById('register-result');
+            resultDiv.style.display = 'block';
+            resultDiv.innerHTML = '<div class="loading"></div> Création...';
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/auth/register`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        username: 'admin',
+                        email: 'admin@cogarden.com',
+                        password: 'admin123'
+                    })
+                });
+                const data = await response.json();
+                
+                if (response.ok) {
+                    authToken = data.token;
+                    resultDiv.innerHTML = `<span class="success">✅ SUCCESS</span><pre>${JSON.stringify(data, null, 2)}</pre>`;
+                } else {
+                    resultDiv.innerHTML = `<span class="error">⚠️ ${response.status}</span><pre>${JSON.stringify(data, null, 2)}</pre>`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<span class="error">❌ ERROR</span><pre>${error.message}</pre>`;
+            }
+        }
+
+        async function testLoginAdmin() {
+            const resultDiv = document.getElementById('login-result');
+            resultDiv.style.display = 'block';
+            resultDiv.innerHTML = '<div class="loading"></div> Connexion...';
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        username: 'admin',
+                        password: 'admin123'
+                    })
+                });
+                const data = await response.json();
+                
+                if (response.ok) {
+                    authToken = data.token;
+                    resultDiv.innerHTML = `<span class="success">✅ SUCCESS</span><pre>${JSON.stringify(data, null, 2)}</pre><p style="margin-top:10px;"><strong>Token sauvegardé!</strong> Vous pouvez maintenant créer/modifier/supprimer des plantes.</p>`;
+                } else {
+                    resultDiv.innerHTML = `<span class="error">⚠️ ${response.status}</span><pre>${JSON.stringify(data, null, 2)}</pre>`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<span class="error">❌ ERROR</span><pre>${error.message}</pre>`;
+            }
+        }
+
+        // Auto-test on load
+        window.onload = () => {
+            console.log('🌱 Co-Garden API Tester chargé!');
+            console.log('📍 Base URL:', API_BASE);
+        };
+    </script>
+</body>
+</html>
